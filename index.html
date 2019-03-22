@@ -9,6 +9,9 @@
       crossorigin="anonymous"
     ></script>
 
+    <script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css" />
+
     <!-- development version, includes helpful console warnings -->
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 
@@ -23,6 +26,9 @@
       // function, if you have ever used jQuery $(document).ready() it is
       // basically the same thing.
       $(function() {
+        //Make the DataTable instance
+        $("#parcelsData").DataTable();
+
         // create a new Vue.js instance and specify the template as well as the
         // data that should be displayed in it.
         var parcelShipper = new Vue({
@@ -35,6 +41,7 @@
             show: false,
 
             destination: "",
+            express: false,
 
             destinations: [
               "Alberta",
@@ -54,13 +61,14 @@
 
             parcel: {
               id: 0,
+              status: "",
               destination: "",
               weight: "", //the filesize
               cost: 0, //weight / 100 is the price to ship this parcel
               created: null, //when the parcel was created
               shipped: null, //when the parcel was shipped
               express: false,
-              data: {}
+              file: {}
             },
 
             parcels: []//stores all the parcels
@@ -71,11 +79,15 @@
                     this.show = false;
                 else
                     this.show = true;
+            },
+
+            parcels: function(){
+                localStorage.parcels = JSON.stringify(this.parcels);
             }
           },
           mounted: function(){
             if(localStorage.parcels)
-                this.parcels = localStorage.parcels;
+                this.parcels = JSON.parse(localStorage.parcels);
           },
           created: function() {
             // _.debounce is a function provided by lodash to limit how
@@ -105,36 +117,66 @@
                 });
             },
 
+            assignFiles: function(){
+                this.files = this.$refs.myFiles.files;
+            },//end assignFiles
+
             //Runs when the file uploader is changed
             scanFiles: function() {
-                this.files = this.$refs.myFiles.files;
+                if(this.files.length == 0){
+                    this.uploadStatus = "You must have something to ship. Please include a file for shipping";
+                    return;
+                }//end if
 
-                for(var i = 0; i < this.files; ++i){
+                if(this.destination == ""){
+                    this.uploadStatus = "You can't ship a file to nowhere, please include a destination.";
+                    return;
+                }//end if
+                    
+
+
+                this.uploadStatus = `Scanning ${this.files.length} files.`
+
+                for(var i = 0; i < this.files.length; ++i){
                     //make sure there are no .exe or .zip files uploaded
                     let file = this.files[i];
-                    let ext = file.split(".");
+
+                    let ext = file.name.split(".");
                     ext = ext[ext.length-1];
 
                     if(ext === "zip" || ext === "exe"){
+                        this.uploadStatus = "There were issues with your upload. Please review the information below and try again.";
                         this.skipped.push({name: file.name, reason: `Invalid file type ${ext}`});
-                        continue;
+                        return;
                     }//end if
 
                     //create the parcel
                     let p = this.parcel;
-                    p.id = generateTrackingNumber();
+                    p.id = this.generateTrackingNumber();
+                    p.status = "Processing";
                     p.destination = this.destination;
                     p.weight = file.size;
-                    p.cost = (file.size / 100).toFixed(2);
+                    p.cost = (file.size / 1024).toFixed(2);
+                    
+                    if(this.express)
+                        p.cost += (5.00).toFixed(2);
+                    
                     p.created = new Date();
                     p.express = this.express;
+                    p.file = {
+                        name: file.name,
+                        type: file.type,
+                    };
 
                     this.parcels.push(p);
                 }//end for
 
                 //reset the values
-                this.express = false;
-                this.destination = "";
+                this.express = false;//reset the express value
+                this.destination = "";//reset the destination
+                this.files = "";//empty the files
+                this.$refs.myFiles.value = '';//reset the file upload
+                this.uploadStatus = "Please Select a file to ship";
             }, //end scanFiles
 
             generateTrackingNumber: function() {
@@ -184,7 +226,7 @@
                   tokens[Math.floor(Math.random() * tokens.length)]
                 );
               }
-              console.log("Generated: " + trackingNumber);
+            //   console.log("Generated: " + trackingNumber);
               return trackingNumber;
             } //end generateTrackingNumber
           }
@@ -193,24 +235,64 @@
     </script>
   </head>
   <body>
-    <image src="iwd_ps_logo.png" width="50%" height="50%" />
+    <image src="iwd_ps_logo.png"/>
 
     <div id="parcelShipper">
+        <h2>Create a parcel</h2>
         <p>{{ uploadStatus }}</p>
 
         <div v-if="show">
             <p>The following files were skipped</p>
-            <ul class="currentParcels">
+            <ul class="skipped">
                 <li v-for="(item, index) in skipped">
                     {{item.name}} - {{item.reason}}
                 </li>
             </ul>
         </div>
         
-        <input type="file" id="file" ref="myFiles" class="custom-file-input"  @change="scanFiles" multiple />
+        <input type="file" id="file" ref="myFiles" class="custom-file-input"  @change="assignFiles" />
 
-        <h5>Current Parcels:</h5>
-      
+        <p>Where is this going? {{destination}}</p>
+        <select v-model="destination">
+            <option value="">--SELECT A DESTINATION--</option>
+            <option v-for="(item, index) in destinations">
+                {{item}}
+            </option>
+        </select>
+
+        <input type="checkbox" id="checkbox" v-model="express">
+        <label for="checkbox">Ship Express ($5)</label>
+
+        <button @click="scanFiles">Create Parcel</button>
+
+        <h2>Current Parcels:</h2>
+        <table id="parcelsData" class="table-striped">
+            <thead>
+                <tr style="text-align:centered;">
+                    <th>Tracking #</th>
+                    <th>Name</th>
+                    <th>Destination</th>
+                    <th>Weight</th>
+                    <th>Cost</th>
+                    <th>Status</th>
+                    <th>Shipped Express?</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="(item, index) in parcels" style="text-align:center;">
+                    <td>{{item.id}}</td>
+                    <td>{{item.file.name}}</td>
+                    <td>{{item.destination}}</td>
+                    <td>{{item.weight}} bytes</td>
+                    <td>${{item.cost}}</td>
+                    <td>{{item.status}}</td>
+                    <td>
+                        <span key=1 v-if="item.express">Yes</span>
+                        <span key=2 v-else>No</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
   </body>
 </html>
