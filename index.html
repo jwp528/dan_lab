@@ -1,0 +1,216 @@
+<html>
+  <head>
+    <title>Dan Lab</title>
+
+    <!-- JQUERY -->
+    <script
+      src="http://code.jquery.com/jquery-3.3.1.min.js"
+      integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- development version, includes helpful console warnings -->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+    <!-- production version, optimized for size and speed -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vue"></script> -->
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@0.12.0/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.13.1/lodash.min.js"></script>
+
+    <script>
+      // wait until the DOM specified in <body> has loaded before executing the
+      // function, if you have ever used jQuery $(document).ready() it is
+      // basically the same thing.
+      $(function() {
+        // create a new Vue.js instance and specify the template as well as the
+        // data that should be displayed in it.
+        var parcelShipper = new Vue({
+          el: "#parcelShipper",
+          data: {
+            files: [],
+
+            uploadStatus: "Please select a file to ship",
+            skipped: [],
+            show: false,
+
+            destination: "",
+
+            destinations: [
+              "Alberta",
+              "British Columbia",
+              "Manitoba",
+              "New Brunswick",
+              "Newfoundland",
+              "Northwest Territories",
+              "Nova Scotia",
+              "Nunavut",
+              "Ontario",
+              "P.E.I",
+              "Quebec",
+              "Saskatchewan",
+              "Yukon"
+            ], //end destinations
+
+            parcel: {
+              id: 0,
+              destination: "",
+              weight: "", //the filesize
+              cost: 0, //weight / 100 is the price to ship this parcel
+              created: null, //when the parcel was created
+              shipped: null, //when the parcel was shipped
+              express: false,
+              data: {}
+            },
+
+            parcels: []//stores all the parcels
+          },
+          watch: {
+            skipped: function(){
+                if(this.skipped.length == 0)
+                    this.show = false;
+                else
+                    this.show = true;
+            }
+          },
+          mounted: function(){
+            if(localStorage.parcels)
+                this.parcels = localStorage.parcels;
+          },
+          created: function() {
+            // _.debounce is a function provided by lodash to limit how
+            // often a particularly expensive operation can be run.
+            // In this case, we want to limit how often we access
+            // yesno.wtf/api, waiting until the user has completely
+            // finished typing before making the ajax request. To learn
+            // more about the _.debounce function (and its cousin
+            // _.throttle), visit: https://lodash.com/docs#debounce
+            this.debouncedGetAnswer = _.debounce(this.getAnswer, 500);
+          },
+          methods: {
+            getAnswer: function() {
+              if (this.question.indexOf("?") === -1) {
+                this.answer = "Questions usually contain a question mark. ;-)";
+                return;
+              }
+              this.answer = "Thinking...";
+              var vm = this;
+              axios
+                .get("https://yesno.wtf/api")
+                .then(function(response) {
+                  vm.answer = _.capitalize(response.data.answer);
+                })
+                .catch(function(error) {
+                  vm.answer = "Error! Could not reach the API. " + error;
+                });
+            },
+
+            //Runs when the file uploader is changed
+            scanFiles: function() {
+                this.files = this.$refs.myFiles.files;
+
+                for(var i = 0; i < this.files; ++i){
+                    //make sure there are no .exe or .zip files uploaded
+                    let file = this.files[i];
+                    let ext = file.split(".");
+                    ext = ext[ext.length-1];
+
+                    if(ext === "zip" || ext === "exe"){
+                        this.skipped.push({name: file.name, reason: `Invalid file type ${ext}`});
+                        continue;
+                    }//end if
+
+                    //create the parcel
+                    let p = this.parcel;
+                    p.id = generateTrackingNumber();
+                    p.destination = this.destination;
+                    p.weight = file.size;
+                    p.cost = (file.size / 100).toFixed(2);
+                    p.created = new Date();
+                    p.express = this.express;
+
+                    this.parcels.push(p);
+                }//end for
+
+                //reset the values
+                this.express = false;
+                this.destination = "";
+            }, //end scanFiles
+
+            generateTrackingNumber: function() {
+              const TN_LENGTH = 10;
+              const TN_PREFIX = "IWD";
+              var tokens = [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E",
+                "F",
+                "G",
+                "H",
+                "I",
+                "J",
+                "K",
+                "L",
+                "M",
+                "N",
+                "O",
+                "P",
+                "Q",
+                "R",
+                "S",
+                "T",
+                "U",
+                "V",
+                "W",
+                "X",
+                "Y",
+                "Z",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+                "0"
+              ];
+              var trackingNumber = new String(TN_PREFIX);
+              for (var x = 0; x < TN_LENGTH; x++) {
+                trackingNumber = trackingNumber.concat(
+                  tokens[Math.floor(Math.random() * tokens.length)]
+                );
+              }
+              console.log("Generated: " + trackingNumber);
+              return trackingNumber;
+            } //end generateTrackingNumber
+          }
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <image src="iwd_ps_logo.png" width="50%" height="50%" />
+
+    <div id="parcelShipper">
+        <p>{{ uploadStatus }}</p>
+
+        <div v-if="show">
+            <p>The following files were skipped</p>
+            <ul class="currentParcels">
+                <li v-for="(item, index) in skipped">
+                    {{item.name}} - {{item.reason}}
+                </li>
+            </ul>
+        </div>
+        
+        <input type="file" id="file" ref="myFiles" class="custom-file-input"  @change="scanFiles" multiple />
+
+        <h5>Current Parcels:</h5>
+      
+    </div>
+  </body>
+</html>
