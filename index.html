@@ -123,6 +123,9 @@
 
             //Runs when the file uploader is changed
             scanFiles: function() {
+                //new file scan, hide the skipped parts
+                this.skipped = [];
+                
                 if(this.files.length == 0){
                     this.uploadStatus = "You must have something to ship. Please include a file for shipping";
                     return;
