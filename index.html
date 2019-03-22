@@ -9,14 +9,37 @@
       crossorigin="anonymous"
     ></script>
 
+    <!-- BOOTSTRAP -->
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+      integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+      crossorigin="anonymous"
+    />
+
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+      integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+      integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- datatables -->
     <script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css"
+    />
 
     <!-- development version, includes helpful console warnings -->
-    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
 
     <!-- production version, optimized for size and speed -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/vue"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/axios@0.12.0/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.13.1/lodash.min.js"></script>
@@ -71,23 +94,21 @@
               file: {}
             },
 
-            parcels: []//stores all the parcels
+            parcels: [] //stores all the parcels
           },
           watch: {
-            skipped: function(){
-                if(this.skipped.length == 0)
-                    this.show = false;
-                else
-                    this.show = true;
+            skipped: function() {
+              if (this.skipped.length == 0) this.show = false;
+              else this.show = true;
             },
 
-            parcels: function(){
-                localStorage.parcels = JSON.stringify(this.parcels);
+            parcels: function() {
+              localStorage.parcels = JSON.stringify(this.parcels);
             }
           },
-          mounted: function(){
-            if(localStorage.parcels)
-                this.parcels = JSON.parse(localStorage.parcels);
+          mounted: function() {
+            if (localStorage.parcels)
+              this.parcels = JSON.parse(localStorage.parcels);
           },
           created: function() {
             // _.debounce is a function provided by lodash to limit how
@@ -117,69 +138,72 @@
                 });
             },
 
-            assignFiles: function(){
-                this.files = this.$refs.myFiles.files;
-            },//end assignFiles
+            assignFiles: function() {
+              this.files = this.$refs.myFiles.files;
+            }, //end assignFiles
 
             //Runs when the file uploader is changed
             scanFiles: function() {
-                //new file scan, hide the skipped parts
-                this.skipped = [];
-                
-                if(this.files.length == 0){
-                    this.uploadStatus = "You must have something to ship. Please include a file for shipping";
-                    return;
-                }//end if
+              //new file scan, hide the skipped parts
+              this.skipped = [];
 
-                if(this.destination == ""){
-                    this.uploadStatus = "You can't ship a file to nowhere, please include a destination.";
-                    return;
-                }//end if
-                    
+              if (this.files.length == 0) {
+                this.uploadStatus =
+                  "You must have something to ship. Please include a file for shipping";
+                return;
+              } //end if
 
+              if (this.destination == "") {
+                this.uploadStatus =
+                  "You can't ship a file to nowhere, please include a destination.";
+                return;
+              } //end if
 
-                this.uploadStatus = `Scanning ${this.files.length} files.`
+              this.uploadStatus = `Scanning ${this.files.length} files.`;
 
-                for(var i = 0; i < this.files.length; ++i){
-                    //make sure there are no .exe or .zip files uploaded
-                    let file = this.files[i];
+              for (var i = 0; i < this.files.length; ++i) {
+                //make sure there are no .exe or .zip files uploaded
+                let file = this.files[i];
 
-                    let ext = file.name.split(".");
-                    ext = ext[ext.length-1];
+                let ext = file.name.split(".");
+                ext = ext[ext.length - 1];
 
-                    if(ext === "zip" || ext === "exe"){
-                        this.uploadStatus = "There were issues with your upload. Please review the information below and try again.";
-                        this.skipped.push({name: file.name, reason: `Invalid file type ${ext}`});
-                        return;
-                    }//end if
+                if (ext === "zip" || ext === "exe") {
+                  this.uploadStatus =
+                    "There were issues with your upload. Please review the information below and try again.";
+                  this.skipped.push({
+                    name: file.name,
+                    reason: `Invalid file type ${ext}`
+                  });
+                  return;
+                } //end if
 
-                    //create the parcel
-                    let p = this.parcel;
-                    p.id = this.generateTrackingNumber();
-                    p.status = "Processing";
-                    p.destination = this.destination;
-                    p.weight = file.size;
-                    p.cost = (file.size / 1024).toFixed(2);
-                    
-                    if(this.express)
-                        p.cost += (5.00).toFixed(2);
-                    
-                    p.created = new Date();
-                    p.express = this.express;
-                    p.file = {
-                        name: file.name,
-                        type: file.type,
-                    };
+                //create the parcel
+                let p = this.parcel;
+                p.id = this.generateTrackingNumber();
+                p.status = "Processing";
+                p.destination = this.destination;
+                p.weight = file.size;
+                p.cost = (file.size / 1024).toFixed(2);
 
-                    this.parcels.push(p);
-                }//end for
+                if (this.express) p.cost += (5.0).toFixed(2);
 
-                //reset the values
-                this.express = false;//reset the express value
-                this.destination = "";//reset the destination
-                this.files = "";//empty the files
-                this.$refs.myFiles.value = '';//reset the file upload
-                this.uploadStatus = "Please Select a file to ship";
+                p.created = new Date();
+                p.express = this.express;
+                p.file = {
+                  name: file.name,
+                  type: file.type
+                };
+
+                this.parcels.push(p);
+              } //end for
+
+              //reset the values
+              this.express = false; //reset the express value
+              this.destination = ""; //reset the destination
+              this.files = ""; //empty the files
+              this.$refs.myFiles.value = ""; //reset the file upload
+              this.uploadStatus = "Please Select a file to ship";
             }, //end scanFiles
 
             generateTrackingNumber: function() {
@@ -229,7 +253,7 @@
                   tokens[Math.floor(Math.random() * tokens.length)]
                 );
               }
-            //   console.log("Generated: " + trackingNumber);
+              //   console.log("Generated: " + trackingNumber);
               return trackingNumber;
             } //end generateTrackingNumber
           }
@@ -238,64 +262,89 @@
     </script>
   </head>
   <body>
-    <image src="iwd_ps_logo.png"/>
-
-    <div id="parcelShipper">
+    <div id="parcelShipper" class="container body-content">
+        <image src="iwd_ps_logo.png" width="100%" class="mb-3"/>
         <h2>Create a parcel</h2>
-        <p>{{ uploadStatus }}</p>
+        
+        <div class="status">
+            <p>{{ uploadStatus }}</p>
 
-        <div v-if="show">
-            <p>The following files were skipped</p>
-            <ul class="skipped">
+            <div v-if="show">
+                <p>The following files were skipped</p>
+                <ul class="skipped">
                 <li v-for="(item, index) in skipped">
-                    {{item.name}} - {{item.reason}}
+                    {{ item.name }} - {{ item.reason }}
                 </li>
-            </ul>
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-sm-12">
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text" id="inputGroupFileAddon01">Upload</span>
+                </div>
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="parcelFileUpload" ref="myFiles" @change="assignFiles" aria-describedby="parcelFileUpload" />
+                    <label class="custom-file-label" for="parcelFileUpload">Choose file</label>
+                </div>
+            </div>
         </div>
         
-        <input type="file" id="file" ref="myFiles" class="custom-file-input"  @change="assignFiles" />
+        <div class="col-md-6 col-sm-12">
+            <div class="input-group">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Where is this going?</span>
+                </div>
+                <select v-model="destination" class="form-control">
+                    <option value="">--SELECT A DESTINATION--</option>
+                    <option v-for="(item, index) in destinations">
+                    {{ item }}
+                    </option>
+                </select>
+            </div>
+        </div>
 
-        <p>Where is this going? {{destination}}</p>
-        <select v-model="destination">
-            <option value="">--SELECT A DESTINATION--</option>
-            <option v-for="(item, index) in destinations">
-                {{item}}
-            </option>
-        </select>
+        <!--
+            <div class="custom-control custom-checkbox">
+  <input type="checkbox" class="custom-control-input" id="customCheck1">
+  <label class="custom-control-label" for="customCheck1">Check this custom checkbox</label>
+</div>
+        -->
 
-        <input type="checkbox" id="checkbox" v-model="express">
-        <label for="checkbox">Ship Express ($5)</label>
+      <input type="checkbox" id="checkbox" v-model="express" />
+      <label for="checkbox">Ship Express ($5)</label>
 
-        <button @click="scanFiles">Create Parcel</button>
+      <button @click="scanFiles">Create Parcel</button>
 
-        <h2>Current Parcels:</h2>
-        <table id="parcelsData" class="table-striped">
-            <thead>
-                <tr style="text-align:centered;">
-                    <th>Tracking #</th>
-                    <th>Name</th>
-                    <th>Destination</th>
-                    <th>Weight</th>
-                    <th>Cost</th>
-                    <th>Status</th>
-                    <th>Shipped Express?</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="(item, index) in parcels" style="text-align:center;">
-                    <td>{{item.id}}</td>
-                    <td>{{item.file.name}}</td>
-                    <td>{{item.destination}}</td>
-                    <td>{{item.weight}} bytes</td>
-                    <td>${{item.cost}}</td>
-                    <td>{{item.status}}</td>
-                    <td>
-                        <span key=1 v-if="item.express">Yes</span>
-                        <span key=2 v-else>No</span>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+      <h2>Current Parcels:</h2>
+      <table id="parcelsData" class="table-striped">
+        <thead>
+          <tr>
+            <th class="text-center">Tracking #</th>
+            <th class="text-center">Name</th>
+            <th class="text-center">Destination</th>
+            <th class="text-center">Weight</th>
+            <th class="text-center">Cost</th>
+            <th class="text-center">Status</th>
+            <th class="text-center">Shipped Express?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(item, index) in parcels" style="text-align:center;">
+            <td>{{ item.id }}</td>
+            <td>{{ item.file.name }}</td>
+            <td>{{ item.destination }}</td>
+            <td>{{ item.weight }} bytes</td>
+            <td>${{ item.cost }}</td>
+            <td>{{ item.status }}</td>
+            <td>
+              <span key="1" v-if="item.express">Yes</span>
+              <span key="2" v-else>No</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </body>
 </html>
