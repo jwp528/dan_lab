@@ -1,4 +1,4 @@
-var todoDB = (function() {
+var parcelDB = (function() {
     var tDB = {};
     var datastore = null;
 
@@ -10,7 +10,7 @@ var todoDB = (function() {
         var version = 1;
 
         // Open a connection to the datastore.
-        var request = indexedDB.open('todos', version);
+        var request = indexedDB.open('parcels', version);
 
         // Handle datastore upgrades.
         request.onupgradeneeded = function(e) {
@@ -19,13 +19,13 @@ var todoDB = (function() {
             e.target.transaction.onerror = tDB.onerror;
 
             // Delete the old datastore.
-            if (db.objectStoreNames.contains('todo')) {
-            db.deleteObjectStore('todo');
+            if (db.objectStoreNames.contains('parcel')) {
+              db.deleteObjectStore('parcel');
             }
 
             // Create a new datastore.
-            var store = db.createObjectStore('todo', {
-            keyPath: 'timestamp'
+            var store = db.createObjectStore('parcel', {
+              keyPath: 'timestamp'
             });
         };
 
@@ -43,21 +43,21 @@ var todoDB = (function() {
     };//end tDB open function
 
     /**
-     * Fetch all of the todo items in the datastore.
+     * Fetch all of the parcel items in the datastore.
      */
-    tDB.fetchTodos = function(callback) {
+    tDB.fetchparcels = function(callback) {
         var db = datastore;
-        var transaction = db.transaction(['todo'], 'readwrite');
-        var objStore = transaction.objectStore('todo');
+        var transaction = db.transaction(['parcel'], 'readwrite');
+        var objStore = transaction.objectStore('parcel');
 
         var keyRange = IDBKeyRange.lowerBound(0);
         var cursorRequest = objStore.openCursor(keyRange);
 
-        var todos = [];
+        var parcels = [];
 
         transaction.oncomplete = function(e) {
             // Execute the callback function.
-            callback(todos);
+            callback(parcels);
         };
 
         cursorRequest.onsuccess = function(e) {
@@ -67,43 +67,42 @@ var todoDB = (function() {
             return;
             }
 
-            todos.push(result.value);
+            parcels.push(result.value);
 
             result.continue();
         };
 
         cursorRequest.onerror = tDB.onerror;
-    };//end fetchTodos
+    };//end fetchparcels
 
     /**
- * Create a new todo item.
+ * Create a new parcel item.
  */
-tDB.createTodo = function(text, callback) {
+tDB.createparcel = function(parcel, callback) {
   // Get a reference to the db.
   var db = datastore;
 
   // Initiate a new transaction.
-  var transaction = db.transaction(['todo'], 'readwrite');
+  var transaction = db.transaction(['parcel'], 'readwrite');
 
   // Get the datastore.
-  var objStore = transaction.objectStore('todo');
+  var objStore = transaction.objectStore('parcel');
 
-  // Create a timestamp for the todo item.
+  // Create a timestamp for the parcel item.
   var timestamp = new Date().getTime();
 
-  // Create an object for the todo item.
-  var todo = {
-    'text': text,
-    'timestamp': timestamp
-  };
+  // Create an object for the parcel item.
+  var parcel = parcel;
+
+
 
   // Create the datastore request.
-  var request = objStore.put(todo);
+  var request = objStore.put(parcel);
 
   // Handle a successful datastore put.
   request.onsuccess = function(e) {
     // Execute the callback function.
-    callback(todo);
+    callback(parcel);
   };
 
   // Handle errors.
@@ -111,12 +110,12 @@ tDB.createTodo = function(text, callback) {
 };
 
 /**
- * Delete a todo item.
+ * Delete a parcel item.
  */
-tDB.deleteTodo = function(id, callback) {
+tDB.deleteparcel = function(id, callback) {
   var db = datastore;
-  var transaction = db.transaction(['todo'], 'readwrite');
-  var objStore = transaction.objectStore('todo');
+  var transaction = db.transaction(['parcel'], 'readwrite');
+  var objStore = transaction.objectStore('parcel');
 
   var request = objStore.delete(id);
 

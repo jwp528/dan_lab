@@ -15,7 +15,7 @@ $(function() {
                 localStorage.parcels = JSON.stringify(this.parcels);
             }//end parcels
         },//end watch
-        mounted: function() {    
+        mounted: function() {
             if (localStorage.parcels)
                 this.parcels = JSON.parse(localStorage.parcels);
         },//end mounted
@@ -50,6 +50,6 @@ $(function() {
                     });//end axios call
             },//end getAnswer
         }//end methods
-        
+
     });//end Vue instance
 });//end body onload
